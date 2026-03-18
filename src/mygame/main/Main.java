@@ -1,37 +1,71 @@
+
 package mygame.main;
 
-import javax.swing.JFrame;
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
-import java.awt.Color;
-import java.awt.Image;
+import javax.swing.*;
+import java.awt.*;
 import java.util.Objects;
 
 public class Main {
-    public static void main(String[] args) {
-        JFrame window = new JFrame();
+
+    JFrame window;
+    CardLayout cardLayout;
+    JPanel container;
+
+    GamePanel gamePanel;
+    MenuPanel menuPanel;
+
+    public Main() {
+
+        window = new JFrame();
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         window.setResizable(false);
-        window.setTitle("Golden Egg"); // Tên tiêu đề cửa sổ
+        window.setTitle("Golden Egg");
 
-        // Tạo viền màu đen (bạn có thể thay đổi độ dày bằng cách thay đổi giá trị số)
         window.getRootPane().setBorder(BorderFactory.createLineBorder(Color.WHITE, 5));
 
         try {
-            ImageIcon logoIcon = new ImageIcon(Objects.requireNonNull(Main.class.getResource("/res/tiles/logo.png")));
-            Image logoImage = logoIcon.getImage();
-            window.setIconImage(logoImage);
+            ImageIcon logoIcon = new ImageIcon(
+                    Objects.requireNonNull(getClass().getResource("/res/tiles/logo.png"))
+            );
+            window.setIconImage(logoIcon.getImage());
         } catch (Exception e) {
-            System.err.println("Không thể tải logo game. Kiểm tra lại đường dẫn ảnh.");
+            System.err.println("Không thể tải logo");
             e.printStackTrace();
         }
 
-        GamePanel gamePanel = new GamePanel();
-        window.add(gamePanel);
+        cardLayout = new CardLayout();
+        container = new JPanel(cardLayout);
 
-        window.pack(); // Tự động co giãn cửa sổ vừa khít với GamePanel
-        window.setLocationRelativeTo(null); // Hiển thị cửa sổ ở chính giữa màn hình
+        gamePanel = new GamePanel(this);
+        menuPanel = new MenuPanel(this);
+
+        container.add(menuPanel, "menu");
+        container.add(gamePanel, "game");
+
+        window.add(container);
+        window.pack();
+        window.setLocationRelativeTo(null);
         window.setVisible(true);
+
+        showMenu();
+    }
+
+    public void showMenu() {
+        gamePanel.stopGameThread();
+        cardLayout.show(container, "menu");
+        menuPanel.requestFocusInWindow();
+        menuPanel.playMenuMusic();
+    }
+
+    public void startGame(String playerName) {
+        gamePanel.setPlayerName(playerName);
+        gamePanel.setupGame();
+        cardLayout.show(container, "game");
+        gamePanel.requestFocusInWindow();
         gamePanel.startGameThread();
+}
+
+    public static void main(String[] args) {
+        new Main();
     }
 }

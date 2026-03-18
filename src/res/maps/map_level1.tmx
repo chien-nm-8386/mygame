@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="32" height="24" tilewidth="32" tileheight="32" infinite="0" nextlayerid="6" nextobjectid="225">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="32" height="24" tilewidth="32" tileheight="32" infinite="0" nextlayerid="6" nextobjectid="226">
  <tileset firstgid="1" name="map_level1" tilewidth="32" tileheight="32" tilecount="736" columns="32">
   <image source="tải về/map_level1.png" width="1024" height="765"/>
  </tileset>
@@ -34,7 +34,7 @@
  <imagelayer id="2" name="Image Layer 1">
   <image source="tải về/map_level1.png" width="1024" height="765"/>
  </imagelayer>
- <objectgroup id="3" name="collision" visible="0">
+ <objectgroup id="3" name="collision">
   <object id="11" x="51" y="37" width="35" height="685"/>
   <object id="13" x="934" y="34" width="34" height="684"/>
   <object id="14" x="52" y="32" width="916" height="38"/>
@@ -61,7 +61,6 @@
   <object id="119" x="630.333" y="339.333" width="47.3333" height="30.3333"/>
   <object id="121" x="524.333" y="236.333" width="35.3333" height="123.667"/>
   <object id="134" x="115.667" y="98.6667" width="96" height="49"/>
-  <object id="137" x="116.667" y="305" width="94.3333" height="46.3333"/>
   <object id="144" x="806" y="178.667" width="31.6667" height="93.3333"/>
   <object id="155" x="867" y="482.667" width="31.3333" height="176.333"/>
   <object id="156" x="610.333" y="303.667" width="92.6667" height="35.6667"/>
@@ -91,6 +90,7 @@
   <object id="208" x="745" y="174.667" width="24.3333" height="36"/>
   <object id="210" x="663.667" y="173.667" width="31.3333" height="37.3333"/>
   <object id="215" x="238.5" y="170" width="36.5" height="40.5"/>
+  <object id="225" x="116.333" y="302.333" width="93" height="48.6667"/>
  </objectgroup>
  <objectgroup id="4" name="Entities">
   <object id="6" name="House" x="178.667" y="605.333">

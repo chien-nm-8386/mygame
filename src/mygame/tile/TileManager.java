@@ -1,3 +1,4 @@
+
 package mygame.tile;
 
 import mygame.main.GamePanel;
@@ -41,7 +42,7 @@ public class TileManager {
         try {
             mazeBackground = ImageIO.read(getClass().getResourceAsStream(path));
         } catch (Exception e) {
-            System.out.println("Lỗi: Không tìm thấy ảnh nền tại " + path);
+            System.out.println("Loi: Khong tim thay anh nen tai " + path);
         }
     }
 
@@ -49,7 +50,7 @@ public class TileManager {
         try {
             foregroundImage = ImageIO.read(getClass().getResourceAsStream(path));
         } catch (Exception e) {
-            System.out.println("Lỗi: Không tìm thấy ảnh Foreground.");
+            System.out.println("Loi: Khong tom thoy onh Foreground.");
         }
     }
 
@@ -59,7 +60,7 @@ public class TileManager {
             if (is != null) {
                 eggImage = ImageIO.read(is);
             } else {
-                System.out.println("Lỗi: Không tìm thấy file ảnh tại " + path);
+                System.out.println("Loi: Khong tom thoy file anh tại " + path);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -109,14 +110,14 @@ public class TileManager {
                 }
             }
         } catch (Exception e) {
-            System.out.println("Lỗi đọc XML Tiled: " + e.getMessage());
+            System.out.println("Loi đoc XML Tiled: " + e.getMessage());
         }
     }
 
     public void checkEggCollision(Rectangle playerRect) {
         if (!eggCollected && eggRect != null && playerRect.intersects(eggRect)) {
             eggCollected = true;
-            System.out.println("Chúc mừng! Bạn đã nhặt được trứng.");
+            System.out.println("Chuc mung! Ban da nhat duoc trung.");
         }
     }
 
@@ -128,7 +129,7 @@ public class TileManager {
 
         // Vẽ Trứng 48x48
         if (eggImage != null && eggRect != null && !eggCollected) {
-            g2.drawImage(eggImage, eggRect.x, eggRect.y, 64, 64, null);
+            g2.drawImage(eggImage, eggRect.x, eggRect.y, 48, 48, null);
         }
     }
 
