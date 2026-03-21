@@ -5,25 +5,26 @@ import java.awt.Dimension;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.util.ArrayList;
+import java.util.Iterator;
 import mygame.tile.TileManager;
 import mygame.entity.Player;
-import mygame.tile.CollisionChecker;
-import java.util.ArrayList;
 import mygame.entity.Chicken;
+import mygame.tile.CollisionChecker;
 import mygame.ai.PathFinder;
 
 public class GamePanel extends JPanel implements Runnable {
 
     public Main main;
 
-    // THIẾT LẬP MÀN HÌNH
+    // THIẾT LẬP MÀN HÌNH (64x16 x 64x12)
     public final int tileSize = 64;
     public final int maxScreenCol = 16;
     public final int maxScreenRow = 12;
     public final int screenWidth = tileSize * maxScreenCol;
     public final int screenHeight = tileSize * maxScreenRow;
 
-    // THIẾT LẬP THẾ GIỚI (Mặc định bằng màn hình, có thể mở rộng sau này)
+    // THIẾT LẬP THẾ GIỚI (Cùng kích thước với màn hình trong ví dụ này)
     public final int maxWorldCol = 16;
     public final int maxWorldRow = 12;
 
@@ -38,14 +39,13 @@ public class GamePanel extends JPanel implements Runnable {
 
     Thread gameThread;
 
-    // THÔNG TIN NGƯỜI CHƠI
+    // THỰC THỂ (ENTITIES)
     public String playerName = "Player";
     public Player player;
     public ArrayList<Chicken> chickens = new ArrayList<>();
 
     public GamePanel(Main main) {
         this.main = main;
-
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
         this.setBackground(Color.black);
         this.setDoubleBuffered(true);
@@ -59,33 +59,34 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void setPlayerName(String playerName) {
         this.playerName = playerName;
-        if (player != null) {
-            player.name = playerName;
-        }
+        if (player != null) player.name = playerName;
     }
 
     public void setupGame() {
-        // Reset dữ liệu từ file map Tiled
+        // 1. Reset các đối tượng trên bản đồ (Trứng, Vũ khí, Va chạm)
         tileM.resetMapObjects();
 
+        // 2. Thiết lập lại Player
         if (player != null) {
             player.setDefaultValues();
-            // Đưa player về vị trí Start đã đọc từ Tiled (nếu có)
-            if(tileM.playerStartX != 0 || tileM.playerStartY != 0) {
+            player.name = this.playerName;
+            // Đặt vị trí xuất phát từ file XML
+            if (tileM.playerStartX != 0 || tileM.playerStartY != 0) {
                 player.x = tileM.playerStartX;
                 player.y = tileM.playerStartY;
             }
         }
 
-        // Reset các phím bấm
-        keyH.upPressed = false;
-        keyH.downPressed = false;
-        keyH.leftPressed = false;
-        keyH.rightPressed = false;
-        keyH.escapePressed = false;
+        // 3. Reset trạng thái phím điều khiển
+//        keyH.resetKeys(); // Giả định bạn có hàm này, hoặc set tay như code cũ
 
-        // Khởi tạo gà
+        // 4. Khởi tạo danh sách Gà
         chickens.clear();
+        spawnInitialChickens();
+    }
+
+    private void spawnInitialChickens() {
+        // Thêm gà tại vị trí cụ thể hoặc ngẫu nhiên
         int centerX = screenWidth / 2 - tileSize / 2;
         int centerY = screenHeight / 2 - tileSize / 2;
         chickens.add(new Chicken(this, centerX, centerY));
@@ -129,7 +130,7 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void update() {
-        // 1. Thoát về Menu
+        // 1. Thoát về Menu chính
         if (keyH.escapePressed) {
             keyH.escapePressed = false;
             stopGameThread();
@@ -137,30 +138,38 @@ public class GamePanel extends JPanel implements Runnable {
             return;
         }
 
-        // 2. Cập nhật Player
+        // 2. Cập nhật Player và Kiểm tra nhặt đồ
         if (player != null) {
             player.update();
-            
-            // --- THÊM LOGIC KIỂM TRA NHẶT ĐỒ Ở ĐÂY ---
-            // Truyền vùng va chạm của Player vào TileManager để check Rìu/Trứng
+            // Đây là nơi quan trọng: Check nhặt trứng -> Unlock Vũ khí
             tileM.checkItemCollisions(player.getBounds());
         }
 
-        // 3. Cập nhật Gà và va chạm với gà
-        for (Chicken chicken : chickens) {
+        // 3. Cập nhật danh sách Gà (Dùng Iterator để xóa an toàn khi gà chết)
+        Iterator<Chicken> iterator = chickens.iterator();
+        while (iterator.hasNext()) {
+            Chicken chicken = iterator.next();
+            
+            if (chicken.life <= 0) {
+                iterator.remove();
+                continue;
+            }
+
             chicken.update();
 
+            // Va chạm gây sát thương cho người chơi
             if (player != null && player.getBounds().intersects(chicken.getBounds())) {
-                player.takeDamage(10);
+                player.takeDamage(10); 
             }
         }
 
-        // 4. Kiểm tra Game Over
+        // 4. Kiểm tra điều kiện Thất bại
         if (player != null && player.health <= 0) {
             player.triggerGameOver();
             return;
         }
         
+        // 5. Cập nhật logic bản đồ (animation lơ lửng của vật phẩm)
         tileM.update();
     }
 
@@ -169,22 +178,25 @@ public class GamePanel extends JPanel implements Runnable {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
 
-        // Lớp nền (Background)
+        // --- VẼ THEO THỨ TỰ LỚP (Z-INDEX) ---
+
+        // Lớp 1: Bản đồ nền & Vật phẩm (Trứng/Vũ khí sẽ được TileManager quản lý ẩn/hiện)
         tileM.draw(g2);
 
-        // Các thực thể (Entities)
+        // Lớp 2: Các thực thể (Gà)
         for (Chicken chicken : chickens) {
             chicken.draw(g2);
         }
 
+        // Lớp 3: Người chơi (Vẽ sau gà để đè lên gà khi đi sát)
         if (player != null) {
             player.draw(g2);
         }
 
-        // Lớp phủ (Foreground - ví dụ ngọn cây)
+        // Lớp 4: Tiền cảnh (Cây cối che đầu nhân vật)
         tileM.drawForeground(g2);
 
-        // Giao diện người dùng (UI - Máu, Tên, Thông báo)
+        // Lớp 5: Giao diện người dùng (UI luôn nằm trên cùng)
         if (ui != null) {
             ui.draw(g2);
         }

@@ -17,7 +17,7 @@ public class TileManager {
     BufferedImage mazeBackground; 
     BufferedImage foregroundImage;
     BufferedImage eggImage;
-    BufferedImage weaponImage; // Chỉ sử dụng 1 ảnh Weapons
+    BufferedImage weaponImage;
 
     public ArrayList<Rectangle> collisionRects = new ArrayList<>();
     public int playerStartX, playerStartY;
@@ -30,7 +30,6 @@ public class TileManager {
 
     public Rectangle houseRect;
 
-    // Biến điều khiển hiệu ứng lơ lửng
     private int animationCounter = 0;
 
     public TileManager(GamePanel gp) {
@@ -43,7 +42,6 @@ public class TileManager {
         mazeBackground = setupImage("/res/maps/map_level1.png");
         foregroundImage = setupImage("/res/maps/map_foreground_level1.png");
         eggImage = setupImage("/res/tiles/egg.png");
-        // Load đúng 1 file Weapons.png
         weaponImage = setupImage("/res/tiles/Weapons.png"); 
     }
 
@@ -74,7 +72,6 @@ public class TileManager {
         loadTiledXML("src/res/maps/map_level1.tmx");
     }
 
-    // Hàm update để tăng bộ đếm thời gian
     public void update() {
         animationCounter++;
     }
@@ -85,27 +82,17 @@ public class TileManager {
             g2.drawImage(mazeBackground, 0, 0, gp.screenWidth, gp.screenHeight, null);
         }
 
-        // Tự động tăng counter nếu bạn quên gọi update() trong GamePanel
-        animationCounter++;
-
-        // 2. Vẽ TRỨNG (Lơ lửng chậm)
+        // 2. Vẽ TRỨNG (Chỉ vẽ nếu chưa nhặt)
         if (eggImage != null && eggRect != null && !eggCollected) {
-            // Biên độ 10px, tốc độ 0.07
             int eggOffset = (int) (Math.sin(animationCounter * 0.05) * 10); 
             g2.drawImage(eggImage, eggRect.x, eggRect.y + eggOffset, 64, 64, null);
         }
 
-        // 3. Vẽ VŨ KHÍ (Lơ lửng nhanh hơn một chút)
-        if (weaponImage != null && weaponRect != null && !weaponCollected) {
-            // Biên độ 8px, tốc độ 0.1
-            int weaponOffset = (int) (Math.sin(animationCounter * 0.05) * 8);
-            
-            g2.drawImage(weaponImage, 
-                         weaponRect.x, 
-                         weaponRect.y + weaponOffset, 
-                         weaponRect.width, 
-                         weaponRect.height, 
-                         null);
+        // 3. Vẽ VŨ KHÍ 
+        // ĐIỀU KIỆN QUAN TRỌNG: Chỉ vẽ khi eggCollected == true (đã nhặt trứng)
+        if (eggCollected && weaponImage != null && weaponRect != null && !weaponCollected) {
+            int weaponOffset = (int) (Math.sin(animationCounter * 0.06) * 8);
+            g2.drawImage(weaponImage, weaponRect.x, weaponRect.y + weaponOffset, 110, 60, null);
         }
     }
 
@@ -115,14 +102,26 @@ public class TileManager {
         }
     }
 
+    /**
+     * Kiểm tra va chạm giữa Player và các vật phẩm
+     */
     public void checkItemCollisions(Rectangle playerRect) {
+        // Xử lý nhặt Trứng
         if (!eggCollected && eggRect != null && playerRect.intersects(eggRect)) {
             eggCollected = true;
-            System.out.println("Chúc mừng! Bạn đã nhặt được trứng.");
+            gp.player.hasEgg = true; 
+            // Không gán eggRect = null ngay lập tức nếu bạn muốn giữ tọa độ, 
+            // nhưng ở đây ta dùng flag eggCollected để ẩn nó đi là được.
+            System.out.println("Bạn đã nhặt được Trứng! Vũ khí đã xuất hiện.");
         }
-        if (!weaponCollected && weaponRect != null && playerRect.intersects(weaponRect)) {
+
+        // Xử lý nhặt Vũ khí
+        // ĐIỀU KIỆN QUAN TRỌNG: Phải nhặt trứng xong (eggCollected) mới cho nhặt vũ khí
+        if (eggCollected && !weaponCollected && weaponRect != null && playerRect.intersects(weaponRect)) {
             weaponCollected = true;
-            System.out.println("Tuyệt vời! Bạn đã có Rìu để làm việc.");
+            gp.player.hasWeapon = true; 
+            weaponRect = null; 
+            System.out.println("Bạn đã nhặt được Vũ khí! (Player03 đã kích hoạt)");
         }
     }
 
@@ -139,6 +138,7 @@ public class TileManager {
                 Element group = (Element) nList.item(i);
                 String groupName = group.getAttribute("name");
                 NodeList objectList = group.getElementsByTagName("object");
+                
                 for (int j = 0; j < objectList.getLength(); j++) {
                     Element obj = (Element) objectList.item(j);
                     int x = (int) Double.parseDouble(obj.getAttribute("x"));
@@ -155,7 +155,7 @@ public class TileManager {
                         } else if (name.equalsIgnoreCase("Eggs") || name.equalsIgnoreCase("Egg")) {
                             eggRect = new Rectangle(x, y, 64, 64);
                         } else if (name.equalsIgnoreCase("Weapons")) {
-                            weaponRect = new Rectangle(x, y, 110, 60);
+                            weaponRect = new Rectangle(x, y, 64, 64); 
                         } else if (name.equalsIgnoreCase("House")) {
                             houseRect = new Rectangle(x, y, width, height);
                         }
