@@ -6,8 +6,10 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Collections;
+import java.util.Comparator;
 import mygame.tile.TileManager;
+import mygame.entity.Entity;
 import mygame.entity.Player;
 import mygame.entity.Chicken;
 import mygame.tile.CollisionChecker;
@@ -17,32 +19,34 @@ public class GamePanel extends JPanel implements Runnable {
 
     public Main main;
 
-    // THIẾT LẬP MÀN HÌNH (64x16 x 64x12)
+    // THIẾT LẬP MÀN HÌNH
     public final int tileSize = 64;
     public final int maxScreenCol = 16;
     public final int maxScreenRow = 12;
     public final int screenWidth = tileSize * maxScreenCol;
     public final int screenHeight = tileSize * maxScreenRow;
 
-    // THIẾT LẬP THẾ GIỚI (Cùng kích thước với màn hình trong ví dụ này)
+    // THIẾT LẬP THẾ GIỚI
     public final int maxWorldCol = 16;
     public final int maxWorldRow = 12;
 
     int FPS = 60;
 
-    // KHỞI TẠO HỆ THỐNG
+    // HỆ THỐNG
     public TileManager tileM = new TileManager(this);
     public KeyHandler keyH = new KeyHandler();
     public CollisionChecker cChecker = new CollisionChecker(this);
-    public UI ui;
+    public UI ui = new UI(this); 
     public PathFinder pFinder = new PathFinder(this);
-
     Thread gameThread;
 
-    // THỰC THỂ (ENTITIES)
+    // THỰC THỂ
     public String playerName = "Player";
     public Player player;
-    public ArrayList<Chicken> chickens = new ArrayList<>();
+    public Entity monster[] = new Entity[10]; 
+    
+    // Danh sách hỗ trợ vẽ theo thứ tự chiều sâu (Y-Sorting)
+    ArrayList<Entity> entityList = new ArrayList<>();
 
     public GamePanel(Main main) {
         this.main = main;
@@ -52,8 +56,8 @@ public class GamePanel extends JPanel implements Runnable {
         this.addKeyListener(keyH);
         this.setFocusable(true);
 
+        // Khởi tạo Player
         player = new Player(this, keyH);
-        ui = new UI(this);
         setupGame();
     }
 
@@ -63,33 +67,29 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void setupGame() {
-        // 1. Reset các đối tượng trên bản đồ (Trứng, Vũ khí, Va chạm)
         tileM.resetMapObjects();
 
-        // 2. Thiết lập lại Player
         if (player != null) {
             player.setDefaultValues();
             player.name = this.playerName;
-            // Đặt vị trí xuất phát từ file XML
+            
             if (tileM.playerStartX != 0 || tileM.playerStartY != 0) {
                 player.x = tileM.playerStartX;
                 player.y = tileM.playerStartY;
             }
         }
-
-        // 3. Reset trạng thái phím điều khiển
-//        keyH.resetKeys(); // Giả định bạn có hàm này, hoặc set tay như code cũ
-
-        // 4. Khởi tạo danh sách Gà
-        chickens.clear();
         spawnInitialChickens();
     }
 
     private void spawnInitialChickens() {
-        // Thêm gà tại vị trí cụ thể hoặc ngẫu nhiên
-        int centerX = screenWidth / 2 - tileSize / 2;
-        int centerY = screenHeight / 2 - tileSize / 2;
-        chickens.add(new Chicken(this, centerX, centerY));
+        for(int i = 0; i < monster.length; i++) {
+            monster[i] = null;
+        }
+        // Đặt gà tại các vị trí bạn muốn
+        monster[0] = new Chicken(this, 500, 400);
+        monster[1] = new Chicken(this, 70, 400);
+        monster[2] = new Chicken(this, 200, 430);
+        monster[3] = new Chicken(this, 200, 100);
     }
 
     public void startGameThread() {
@@ -120,17 +120,11 @@ public class GamePanel extends JPanel implements Runnable {
                 repaint();
                 delta--;
             }
-
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
         }
     }
 
     public void update() {
-        // 1. Thoát về Menu chính
+        // 1. Thoát về Menu
         if (keyH.escapePressed) {
             keyH.escapePressed = false;
             stopGameThread();
@@ -138,65 +132,73 @@ public class GamePanel extends JPanel implements Runnable {
             return;
         }
 
-        // 2. Cập nhật Player và Kiểm tra nhặt đồ
+        // 2. Cập nhật Player
         if (player != null) {
             player.update();
-            // Đây là nơi quan trọng: Check nhặt trứng -> Unlock Vũ khí
             tileM.checkItemCollisions(player.getBounds());
         }
 
-        // 3. Cập nhật danh sách Gà (Dùng Iterator để xóa an toàn khi gà chết)
-        Iterator<Chicken> iterator = chickens.iterator();
-        while (iterator.hasNext()) {
-            Chicken chicken = iterator.next();
-            
-            if (chicken.life <= 0) {
-                iterator.remove();
-                continue;
-            }
-
-            chicken.update();
-
-            // Va chạm gây sát thương cho người chơi
-            if (player != null && player.getBounds().intersects(chicken.getBounds())) {
-                player.takeDamage(10); 
+        // 3. Cập nhật Gà & Xử lý va chạm gây sát thương
+        for (int i = 0; i < monster.length; i++) {
+            if (monster[i] != null) {
+                if (monster[i].alive) {
+                    monster[i].update();
+                    
+                    // --- QUAN TRỌNG: KIỂM TRA VA CHẠM GÂY SÁT THƯƠNG ---
+                    // Nếu khung va chạm của Player giao với khung va chạm của Gà
+                    if (player != null && player.getBounds().intersects(monster[i].getBounds())) {
+                        player.takeDamage(10); // Trừ 10 máu và kích hoạt nhấp nháy
+                    }
+                } else {
+                    monster[i] = null; // Gà chết thì biến mất
+                }
             }
         }
 
-        // 4. Kiểm tra điều kiện Thất bại
+        // 4. Kiểm tra Game Over
         if (player != null && player.health <= 0) {
             player.triggerGameOver();
-            return;
         }
         
-        // 5. Cập nhật logic bản đồ (animation lơ lửng của vật phẩm)
         tileM.update();
     }
 
     @Override
-    public void paintComponent(Graphics g) {
+    protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
 
-        // --- VẼ THEO THỨ TỰ LỚP (Z-INDEX) ---
-
-        // Lớp 1: Bản đồ nền & Vật phẩm (Trứng/Vũ khí sẽ được TileManager quản lý ẩn/hiện)
+        // BƯỚC 1: Vẽ Map (Lớp dưới cùng)
         tileM.draw(g2);
 
-        // Lớp 2: Các thực thể (Gà)
-        for (Chicken chicken : chickens) {
-            chicken.draw(g2);
+        // BƯỚC 2: Vẽ các thực thể với Y-Sorting (Chiều sâu)
+        entityList.add(player); // Thêm player vào danh sách vẽ
+        for (int i = 0; i < monster.length; i++) {
+            if (monster[i] != null) {
+                entityList.add(monster[i]); // Thêm quái vật vào danh sách vẽ
+            }
         }
 
-        // Lớp 3: Người chơi (Vẽ sau gà để đè lên gà khi đi sát)
-        if (player != null) {
-            player.draw(g2);
+        // Sắp xếp: Thực thể nào có Y nhỏ hơn (đứng cao hơn) sẽ được vẽ trước
+        Collections.sort(entityList, new Comparator<Entity>() {
+            @Override
+            public int compare(Entity e1, Entity e2) {
+                return Integer.compare(e1.y, e2.y);
+            }
+        });
+
+        // Vẽ từng thực thể sau khi đã sắp xếp thứ tự
+        for (int i = 0; i < entityList.size(); i++) {
+            entityList.get(i).draw(g2);
         }
 
-        // Lớp 4: Tiền cảnh (Cây cối che đầu nhân vật)
+        // Xóa danh sách để frame sau tính toán lại từ đầu
+        entityList.clear();
+
+        // BƯỚC 3: Vẽ tiền cảnh (Foreground)
         tileM.drawForeground(g2);
 
-        // Lớp 5: Giao diện người dùng (UI luôn nằm trên cùng)
+        // BƯỚC 4: Vẽ giao diện (UI)
         if (ui != null) {
             ui.draw(g2);
         }
