@@ -217,4 +217,4 @@ public class Chicken extends Entity {
             if (hpBarCounter > 300) hpBarOn = false;
         }
     }
-}
+} 

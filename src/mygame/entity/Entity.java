@@ -8,7 +8,7 @@ import mygame.main.GamePanel;
 public class Entity {
 
     protected GamePanel gp;
-
+    
     // VỊ TRÍ VÀ TỐC ĐỘ (Dùng để tính toán tọa độ trên màn hình)
     public int x, y;
     public int speed;
