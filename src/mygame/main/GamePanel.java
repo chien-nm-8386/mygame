@@ -205,11 +205,11 @@ public class GamePanel extends JPanel implements Runnable {
                 break;
 
             case 2:
-                chickens.add(new Chicken(this, 80, 80));
-                chickens.add(new Chicken(this, 896, 128));
+                chickens.add(new Chicken(this, 78, 185));
+                chickens.add(new Chicken(this, 800, 115));
                 chickens.add(new Chicken(this, 128, 640));
                 chickens.add(new Chicken(this, 896, 640));
-                chickens.add(new Chicken(this, 512, 320));
+                chickens.add(new Chicken(this, 512, 335));
                 chickens.add(new Chicken(this, 320, 512));
                 break;
         }
