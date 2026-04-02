@@ -1,4 +1,3 @@
-
 package mygame.main;
 
 import java.net.URL;
@@ -13,24 +12,41 @@ public class Sound {
 
     public void setFile(String path) {
         try {
+            if (clip != null) {
+                clip.stop();
+                clip.close();
+            }
+
             soundURL = getClass().getResource(path);
+
             if (soundURL == null) {
                 System.out.println("Không tìm thấy file âm thanh: " + path);
+                clip = null;
                 return;
             }
 
             AudioInputStream ais = AudioSystem.getAudioInputStream(soundURL);
             clip = AudioSystem.getClip();
             clip.open(ais);
+
+            System.out.println("Đã load âm thanh: " + path);
+
         } catch (Exception e) {
+            System.out.println("Lỗi load âm thanh: " + path);
             e.printStackTrace();
+            clip = null;
         }
     }
 
     public void play() {
         try {
             if (clip != null) {
+                clip.stop();
+                clip.setFramePosition(0);
                 clip.start();
+                System.out.println("Đang phát âm thanh...");
+            } else {
+                System.out.println("Clip đang null, không phát được.");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -40,7 +56,10 @@ public class Sound {
     public void loop() {
         try {
             if (clip != null) {
+                clip.stop();
+                clip.setFramePosition(0);
                 clip.loop(Clip.LOOP_CONTINUOUSLY);
+                System.out.println("Đang lặp âm thanh...");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -49,7 +68,7 @@ public class Sound {
 
     public void stop() {
         try {
-            if (clip != null) {
+            if (clip != null && clip.isRunning()) {
                 clip.stop();
             }
         } catch (Exception e) {
@@ -69,5 +88,9 @@ public class Sound {
 
     public boolean isLoaded() {
         return clip != null;
+    }
+
+    public boolean isRunning() {
+        return clip != null && clip.isRunning();
     }
 }

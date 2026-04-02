@@ -6,7 +6,15 @@ import java.awt.event.ActionEvent;
 import java.io.InputStream;
 
 public class GameOverDialog extends JDialog {
+     public interface DialogListener {
+        void onDialogClosed();
+    }
 
+    private DialogListener listener;
+
+    public void addDialogListener(DialogListener listener) {
+        this.listener = listener;
+    }
     private Font gameFont;
 
     public GameOverDialog(JFrame parent, String playerName, Main main) {
@@ -50,35 +58,48 @@ public class GameOverDialog extends JDialog {
         title.setForeground(new Color(255, 230, 230));
         title.setBounds(40, 20, 340, 40);
         panel.add(title);
+        // SỬA
+//        JLabel nameLabel = new JLabel("Player: " + playerName, SwingConstants.CENTER);
+//        nameLabel.setFont(gameFont.deriveFont(Font.PLAIN, 18f));
+//        nameLabel.setForeground(new Color(255, 210, 210));
+//        nameLabel.setBounds(40, 70, 340, 30);
+//        panel.add(nameLabel);
+        
+        // --- DÒNG 1: THÔNG BÁO NHIỆM VỤ (In đậm, màu Vàng rực rỡ) ---
+        JLabel failTitle = new JLabel("NHIỆM VỤ LẤY TRỨNG THẤT BẠI!", SwingConstants.CENTER);
+        failTitle.setFont(new Font("Arial", Font.BOLD, 22)); 
+        // Gợi ý màu: Vàng sáng (255, 255, 0) để nổi bật nhất trên nền đỏ sẫm
+        failTitle.setForeground(new Color(255, 255, 0)); 
+        failTitle.setBounds(0, 80, 420, 30); // Căn giữa toàn bộ chiều rộng (420)
+        panel.add(failTitle);
 
-        JLabel nameLabel = new JLabel("Player: " + playerName, SwingConstants.CENTER);
-        nameLabel.setFont(gameFont.deriveFont(Font.PLAIN, 18f));
-        nameLabel.setForeground(new Color(255, 210, 210));
-        nameLabel.setBounds(40, 70, 340, 30);
-        panel.add(nameLabel);
+        // --- DÒNG 2: THÔNG BÁO CHI TIẾT (Màu trắng bạc, tạo khoảng cách xa hơn) ---
+        JLabel failDetail = new JLabel(playerName + " đã bị gà mổ vào đầu!", SwingConstants.CENTER);
+        failDetail.setFont(new Font("Arial", Font.ITALIC, 16)); // Chữ nghiêng cho nghệ thuật
+        failDetail.setForeground(new Color(255, 255, 255)); // Màu đỏ hồng mờ ảo
+        failDetail.setBounds(0, 130, 420, 30); 
+        panel.add(failDetail);
 
-        JLabel failLabel = new JLabel("You were defeated!", SwingConstants.CENTER);
-        failLabel.setFont(gameFont.deriveFont(Font.PLAIN, 16f));
-        failLabel.setForeground(new Color(255, 220, 220));
-        failLabel.setBounds(40, 100, 340, 25);
-        panel.add(failLabel);
-
+        // --- KHỞI TẠO NÚT BẤM (Sửa lỗi "variable replayBtn" trong ảnh của bạn) ---
         JButton replayBtn = createButton("REPLAY");
-        replayBtn.setBounds(70, 150, 120, 40);
+        replayBtn.setBounds(85, 175, 110, 40); // Đẩy nút xuống Y=175 để không đè chữ
         panel.add(replayBtn);
 
         JButton menuBtn = createButton("MENU");
-        menuBtn.setBounds(230, 150, 120, 40);
+        menuBtn.setBounds(225, 175, 110, 40);
         panel.add(menuBtn);
 
+        // --- GÁN SỰ KIỆN CHO NÚT ---
         replayBtn.addActionListener(e -> {
             dispose();
             main.startGame(playerName);
+            if (listener != null) listener.onDialogClosed();
         });
 
         menuBtn.addActionListener(e -> {
             dispose();
             main.showMenu();
+            if (listener != null) listener.onDialogClosed();
         });
 
         panel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)

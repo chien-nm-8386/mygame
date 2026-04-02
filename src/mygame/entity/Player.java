@@ -13,34 +13,33 @@ import javax.swing.SwingUtilities;
 import mygame.main.GameOverDialog;
 import mygame.main.GamePanel;
 import mygame.main.KeyHandler;
-import mygame.main.VictoryDialog;
 
 public class Player extends Entity {
 
     KeyHandler keyH;
 
     public boolean hasEgg = false;
-    public boolean hasWeapon = false; 
+    public boolean hasWeapon = false;
     public String name = "Player";
 
     public int health = 100;
     public int maxHealth = 100;
 
     private int attackCounter = 0;
-    private boolean victoryShown = false;
     private boolean gameOverShown = false;
+    
+    private mygame.main.Sound footstepSound = new mygame.main.Sound();
+    private boolean isFootstepPlaying = false;
 
-    // Ảnh di chuyển các trạng thái
     public BufferedImage up1_egg, up2_egg, down1_egg, down2_egg, left1_egg, left2_egg, right1_egg, right2_egg;
     public BufferedImage up1_weapon, up2_weapon, down1_weapon, down2_weapon, left1_weapon, left2_weapon, right1_weapon, right2_weapon;
 
     public Player(GamePanel gp, KeyHandler keyH) {
-        super(gp); // Gọi constructor của Entity
+        super(gp);
         this.keyH = keyH;
 
-        // Định dạng vùng va chạm vật lý (body)
         solidArea = new Rectangle();
-        solidArea.x = 12;
+        solidArea.x = 14;
         solidArea.y = 24;
         solidArea.width = 24;
         solidArea.height = 20;
@@ -57,17 +56,20 @@ public class Player extends Entity {
         y = gp.tileM.playerStartY;
         speed = 3;
         direction = "down";
-        
+
         hasEgg = false;
-        hasWeapon = false; 
+        hasWeapon = false;
         attacking = false;
         health = 100;
+        alive = true;
         invincible = false;
+        invincibleCounter = 0;
+        gameOverShown = false;
     }
 
     public void getPlayerImage() {
+        footstepSound.setFile("/res/audio/footstep.wav");
         try {
-            // Player thường (01)
             up1 = setup("/res/tiles/player01_up1.png");
             up2 = setup("/res/tiles/player01_up2.png");
             down1 = setup("/res/tiles/player01_down1.png");
@@ -77,7 +79,6 @@ public class Player extends Entity {
             right1 = setup("/res/tiles/player01_right1.png");
             right2 = setup("/res/tiles/player01_right2.png");
 
-            // Player trứng (02)
             up1_egg = setup("/res/tiles/player02_up1.png");
             up2_egg = setup("/res/tiles/player02_up2.png");
             down1_egg = setup("/res/tiles/player02_down1.png");
@@ -87,7 +88,6 @@ public class Player extends Entity {
             right1_egg = setup("/res/tiles/player02_right1.png");
             right2_egg = setup("/res/tiles/player02_right2.png");
 
-            // Player cầm vũ khí di chuyển (03)
             up1_weapon = setup("/res/tiles/player03_up1.png");
             up2_weapon = setup("/res/tiles/player03_up2.png");
             down1_weapon = setup("/res/tiles/player03_down1.png");
@@ -97,7 +97,6 @@ public class Player extends Entity {
             right1_weapon = setup("/res/tiles/player03_right1.png");
             right2_weapon = setup("/res/tiles/player03_right2.png");
 
-            // Player hành động chém (04)
             attackUp = setup("/res/tiles/player04_up.png");
             attackDown = setup("/res/tiles/player04_down.png");
             attackLeft = setup("/res/tiles/player04_left.png");
@@ -111,18 +110,34 @@ public class Player extends Entity {
     public BufferedImage setup(String imageName) throws IOException {
         return ImageIO.read(getClass().getResourceAsStream(imageName));
     }
+    private void playFootstepSound() {
+        if (!isFootstepPlaying && footstepSound != null && footstepSound.isLoaded()) {
+            footstepSound.loop();
+            isFootstepPlaying = true;
+        }
+    }
+
+    @Override
+    public void stopFootstepSound() {
+        if (footstepSound != null) {
+            footstepSound.stop();
+        }
+        isFootstepPlaying = false;
+    }
 
     @Override
     public void update() {
         if (attacking) {
             attacking();
         } else {
-            // Kiểm tra nhấn Space để chém (Nếu đã nhặt được vũ khí)
-            if (keyH.spacePressed && hasWeapon) {
-                attacking = true;
-                attackCounter = 0;
-            } 
-            else if (keyH.upPressed || keyH.downPressed || keyH.leftPressed || keyH.rightPressed) {
+          
+        if (keyH.spacePressed && hasWeapon) {
+            stopFootstepSound();
+            attacking = true;
+            attackCounter = 0;
+
+        } else if (keyH.upPressed || keyH.downPressed || keyH.leftPressed || keyH.rightPressed) {
+
                 if (keyH.upPressed) direction = "up";
                 else if (keyH.downPressed) direction = "down";
                 else if (keyH.leftPressed) direction = "left";
@@ -139,6 +154,9 @@ public class Player extends Entity {
                         case "left": x -= speed; break;
                         case "right": x += speed; break;
                     }
+                    playFootstepSound();
+                } else {
+                    stopFootstepSound();
                 }
 
                 spriteCounter++;
@@ -146,12 +164,13 @@ public class Player extends Entity {
                     spriteNum = (spriteNum == 1) ? 2 : 1;
                     spriteCounter = 0;
                 }
+
             } else {
                 spriteNum = 1;
+                stopFootstepSound();
             }
         }
 
-        // Xử lý thời gian bất tử khi bị quái chạm vào
         if (invincible) {
             invincibleCounter++;
             if (invincibleCounter > 60) {
@@ -164,26 +183,24 @@ public class Player extends Entity {
     public void attacking() {
         attackCounter++;
 
-        // Hiệu ứng tạo Hitbox chém ở frame thứ 5 đến 10
         if (attackCounter <= 15) {
             int currentWorldX = x;
             int currentWorldY = y;
             int solidAreaWidth = solidArea.width;
             int solidAreaHeight = solidArea.height;
 
-            // Đẩy hitbox ra xa theo hướng chém
             switch(direction) {
                 case "up": y -= gp.tileSize; break;
                 case "down": y += gp.tileSize; break;
                 case "left": x -= gp.tileSize; break;
                 case "right": x += gp.tileSize; break;
             }
+
             solidArea.width = gp.tileSize;
             solidArea.height = gp.tileSize;
 
             checkAttackMonster();
 
-            // Trả lại thông số body gốc
             x = currentWorldX;
             y = currentWorldY;
             solidArea.width = solidAreaWidth;
@@ -197,10 +214,10 @@ public class Player extends Entity {
     }
 
     public void checkAttackMonster() {
-        for (int i = 0; i < gp.monster.length; i++) {
-            if (gp.monster[i] != null) {
-                if (getBounds().intersects(gp.monster[i].getBounds())) {
-                    gp.monster[i].takeDamage(20); // Gà trừ 20 máu
+        for (Chicken chicken : gp.chickens) {
+            if (chicken != null && chicken.alive) {
+                if (getBounds().intersects(chicken.getBounds())) {
+                    chicken.takeDamage(20);
                 }
             }
         }
@@ -208,25 +225,16 @@ public class Player extends Entity {
 
     public void checkObjectInteraction() {
         Rectangle pRect = getBounds();
-        // Nhặt trứng
+
         if (!hasEgg && gp.tileM.eggRect != null && pRect.intersects(gp.tileM.eggRect)) {
             hasEgg = true;
             gp.tileM.eggCollected = true;
             gp.tileM.eggRect = null;
         }
-        // Nhặt vũ khí (yêu cầu có trứng trước)
+
         if (hasEgg && !hasWeapon && gp.tileM.weaponRect != null && pRect.intersects(gp.tileM.weaponRect)) {
             hasWeapon = true;
             gp.tileM.weaponRect = null;
-        }
-        // Về nhà chiến thắng
-        if (gp.tileM.houseRect != null && pRect.intersects(gp.tileM.houseRect)) {
-            if (hasEgg && !victoryShown) {
-                victoryShown = true;
-                gp.stopGameThread();
-                JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(gp);
-                new VictoryDialog(parentFrame, name, gp.main).showDialog();
-            }
         }
     }
 
@@ -235,6 +243,7 @@ public class Player extends Entity {
         BufferedImage image = null;
 
         if (attacking) {
+            stopFootstepSound();
             switch (direction) {
                 case "up": image = attackUp; break;
                 case "down": image = attackDown; break;
@@ -266,12 +275,12 @@ public class Player extends Entity {
             }
         }
 
-        // Nhấp nháy khi bất tử (vừa bị quái chạm vào)
         if (!(invincible && invincibleCounter % 6 < 3)) {
             if (image != null) {
                 g2.drawImage(image, x, y, gp.tileSize, gp.tileSize, null);
             }
         }
+
         drawPlayerUI(g2);
     }
 
@@ -280,8 +289,10 @@ public class Player extends Entity {
         FontMetrics fm = g2.getFontMetrics();
         int textX = x + (gp.tileSize - fm.stringWidth(name)) / 2;
         int textY = y - 10;
+
         g2.setColor(new Color(0, 0, 0, 150));
         g2.drawString(name, textX + 2, textY + 2);
+
         g2.setColor(Color.WHITE);
         g2.drawString(name, textX, textY);
     }
@@ -293,16 +304,23 @@ public class Player extends Entity {
             if (health < 0) health = 0;
             invincible = true;
             invincibleCounter = 0;
-            if (health <= 0) triggerGameOver();
+
+            if (health <= 0) {
+                triggerGameOver();
+            }
         }
     }
 
-    public void triggerGameOver() {
-        if (!gameOverShown) {
-            gameOverShown = true;
-            gp.stopGameThread();
-            JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(gp);
-            new GameOverDialog(parentFrame, name, gp.main).showDialog();
-        }
+   public void triggerGameOver() {
+        if (gameOverShown) return;
+        gameOverShown = true;
+
+        stopFootstepSound();
+        gp.stopAllSounds();
+        gp.playGameOverMusic();
+        gp.gameState = gp.STATE_GAME_OVER;
+
+        JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(gp);
+        new GameOverDialog(parentFrame, name, gp.main).showDialog();
     }
 }

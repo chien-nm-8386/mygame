@@ -1,13 +1,12 @@
 package mygame.ai;
 
-import mygame.entity.*;
-
 public class Node {
+    
     public Node parent;
     public int col, row;
-    public int gCost; // Khoảng cách từ điểm bắt đầu
-    public int hCost; // Khoảng cách đến điểm đích (ước tính)
-    public int fCost; // Tổng chi phí (gCost + hCost)
+    public int gCost;
+    public int hCost;
+    public int fCost;
     public boolean solid;
     public boolean open;
     public boolean checked;
@@ -16,4 +15,18 @@ public class Node {
         this.col = col;
         this.row = row;
     }
-} 
+
+    public void calculateFCost() {
+        fCost = gCost + hCost;
+    }
+
+    public void reset() {
+        parent = null;
+        gCost = 0;
+        hCost = 0;
+        fCost = 0;
+        open = false;
+        checked = false;
+        solid = false;
+    }
+}

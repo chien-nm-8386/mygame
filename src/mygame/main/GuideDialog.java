@@ -3,6 +3,12 @@ package mygame.main;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import javax.swing.JScrollPane;
+import java.awt.Insets;
+import java.awt.Dimension;
+import javax.swing.JButton;
+import javax.swing.BorderFactory;
+import javax.swing.JTextPane;
 
 public class GuideDialog extends JDialog {
 
@@ -47,23 +53,62 @@ public class GuideDialog extends JDialog {
         panel.add(title);
 
         // ===== NỘI DUNG =====
-       JTextArea guideText = new JTextArea(
-        "- Dùng W A S D hoặc phím mũi tên để di chuyển\n" +
-        "- Tìm đường ra khỏi mê cung\n" +
-        "- Nhấn ESC để quay lại menu"
-);
+        JTextPane guideText = new JTextPane();
+        guideText.setContentType("text/html"); // Thiết lập chế độ đọc mã HTML
+        guideText.setText(
+            "<html><body style='font-family:Arial; font-size:16pt; color:#FFF0C8;'>" +
+           "1. DI CHUYỂN: Dùng " +
+            "<span style='background-color:#444; color:white;'><b>&nbsp;W&nbsp;</b></span> " +
+            "<span style='background-color:#444; color:white;'><b>&nbsp;A&nbsp;</b></span> " +
+            "<span style='background-color:#444; color:white;'><b>&nbsp;S&nbsp;</b></span> " +
+            "<span style='background-color:#444; color:white;'><b>&nbsp;D&nbsp;</b></span> hoặc " +
+            "<span style='background-color:#444; color:white;'><b>&nbsp;🡹&nbsp;</b></span> " +
+            "<span style='background-color:#444; color:white;'><b>&nbsp;🡸&nbsp;</b></span> " +
+            "<span style='background-color:#444; color:white;'><b>&nbsp;🡻&nbsp;</b></span> " +
+            "<span style='background-color:#444; color:white;'><b>&nbsp;🡺&nbsp;</b></span>.<br><br>" +
+            "2. MỤC TIÊU: Tìm và nhặt <b>TRỨNG VÀNG</b> ở góc mê cung.<br><br>" +
+            "3. CẢNH BÁO: Lũ gà sẽ <b>THỨC TỈNH</b> và <b>ĐUỔI THEO</b> bạn ngay khi bạn nhặt được trứng!<br><br>" +
+            "4. CHIẾN ĐẤU: Sau khi có trứng, hãy tìm <b>vŨ kHÍ</b> để tự vệ (Nhấn SPACE để tấn công).<br><br>" +
+            "5. HỒI SINH: Hãy cẩn thận! Lũ gà sẽ <b>HỒI SINH</b> sau 5 giây tại vị trí cũ.<br><br>" +
+            "6. CHIẾN THẮNG: Mang trứng về <b>NHÀ</b> an toàn để thắng cuộc." +
+            "</body></html>"
+        );
 
-            guideText.setFont(new Font("Arial", Font.PLAIN, 18));
-            guideText.setForeground(new Color(255, 240, 200));
-            guideText.setOpaque(false);
-            guideText.setEditable(false);
-            guideText.setLineWrap(true);
-            guideText.setWrapStyleWord(true);
-            guideText.setFocusable(false);
-            guideText.setBorder(null);
-            guideText.setBounds(90, 80, 280, 110);
-            panel.add(guideText);
+           // Thiết lập thuộc tính cho TextArea
+        guideText.setOpaque(false);
+        guideText.setEditable(false);
+//        guideText.setLineWrap(true);
+//        guideText.setWrapStyleWord(true);
+       // THÊM KHOẢNG TRỐNG bên phải để chữ không chạm thanh cuộn
+        guideText.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 15));
+        // 2. Tạo JScrollPane (Thanh cuộn) và bỏ TextArea vào trong
+        JScrollPane scrollPane = new JScrollPane(guideText);
+        scrollPane.setBounds(50, 65, 350, 120); // Đặt vị trí và kích thước cho khung cuộn
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false); // Làm nền khung cuộn trong suốt
+        scrollPane.setBorder(null); // Xóa viền mặc định của ScrollPane
+        // 3. Tùy chỉnh thanh cuộn (Scrollbar) cho đẹp hơn (tùy chọn)
+        scrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(8, 0));
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16); // Cuộn mượt
+        // Ẩn các nút mũi tên lên xuống để nhìn tối giản hơn (tùy chọn)
+        scrollPane.getVerticalScrollBar().setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
+            @Override
+            protected void configureScrollBarColors() {
+                this.thumbColor = new Color(240, 190, 105, 150); // Màu thanh kéo khớp với nút OK
+                this.trackColor = new Color(0, 0, 0, 0); // Nền thanh cuộn trong suốt
+            }
+            @Override
+            protected JButton createDecreaseButton(int orientation) { return createZeroButton(); }
+            @Override
+            protected JButton createIncreaseButton(int orientation) { return createZeroButton(); }
 
+            private JButton createZeroButton() {
+                JButton jbutton = new JButton();
+                jbutton.setPreferredSize(new Dimension(0, 0));
+                return jbutton;
+            }
+        });
+        panel.add(scrollPane);
         // ===== BUTTON =====
         JButton okButton = createButton("OK");
         okButton.setBounds(160, 200, 120, 40);

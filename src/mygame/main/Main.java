@@ -1,4 +1,3 @@
-
 package mygame.main;
 
 import javax.swing.*;
@@ -51,19 +50,25 @@ public class Main {
     }
 
     public void showMenu() {
-        gamePanel.stopGameThread();
+        // Chỉ chuyển về menu để giữ lại progress đang chơi dở.
+        // KHÔNG reset game và KHÔNG dừng game thread ở đây.
         cardLayout.show(container, "menu");
         menuPanel.requestFocusInWindow();
         menuPanel.playMenuMusic();
     }
 
+    public void showGame() {
+        cardLayout.show(container, "game");
+        gamePanel.requestFocusInWindow();
+    }
+
     public void startGame(String playerName) {
         gamePanel.setPlayerName(playerName);
-        gamePanel.setupGame();
+        gamePanel.startNewGame();
         cardLayout.show(container, "game");
         gamePanel.requestFocusInWindow();
         gamePanel.startGameThread();
-}
+    }
 
     public static void main(String[] args) {
         new Main();
