@@ -1,6 +1,8 @@
 package mygame.main;
 
 import javax.swing.JPanel;
+import javax.swing.JFrame; // Thêm import này
+import javax.swing.SwingUtilities; // Thêm import này
 import java.awt.Dimension;
 import java.awt.Color;
 import java.awt.Graphics;
@@ -31,12 +33,15 @@ public class GamePanel extends JPanel implements Runnable {
 
     public int gameState = STATE_PLAY;
 
-    // SCREEN
-    public final int tileSize = 64;
+    // SCREEN SETTINGS (Cập nhật theo Cách 1)
+    public final int originalTileSize = 16; // Giả sử kích thước gốc của 1 ô là 16x16
+    public int scale = 4; // Tỉ lệ phóng to ban đầu (4 x 16 = 64)
+
+    public int tileSize = originalTileSize * scale; // 64
     public final int maxScreenCol = 16;
     public final int maxScreenRow = 12;
-    public final int screenWidth = tileSize * maxScreenCol;
-    public final int screenHeight = tileSize * maxScreenRow;
+    public int screenWidth = tileSize * maxScreenCol;
+    public int screenHeight = tileSize * maxScreenRow;
 
     // WORLD
     public final int maxWorldCol = 16;
@@ -78,6 +83,26 @@ public class GamePanel extends JPanel implements Runnable {
         player = new Player(this, keyH);
         ui = new UI(this);
         setupGame();
+    }
+
+    // --- PHƯƠNG THỨC MỚI: PHÓNG TO THU NHỎ CỬA SỔ ---
+    public void setWindowSize(int newScale) {
+        this.scale = newScale;
+        this.tileSize = originalTileSize * scale;
+        this.screenWidth = tileSize * maxScreenCol;
+        this.screenHeight = tileSize * maxScreenRow;
+
+        // Cập nhật kích thước Panel
+        this.setPreferredSize(new Dimension(screenWidth, screenHeight));
+        
+        // Tìm JFrame chứa Panel này và yêu cầu nó co lại theo size mới
+        JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(this);
+        if (frame != null) {
+            frame.pack(); 
+            frame.setLocationRelativeTo(null); // Đưa cửa sổ về giữa màn hình
+        }
+        
+        System.out.println("Scale hien tai: " + scale + " | TileSize: " + tileSize);
     }
 
     public void setPlayerName(String playerName) {
