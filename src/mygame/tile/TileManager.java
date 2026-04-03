@@ -90,13 +90,13 @@ public class TileManager {
         if (eggImage != null) {
             for (Rectangle r : eggList) {
                 int eggOffset = (int) (Math.sin(animationCounter * 0.05) * 10); 
-                g2.drawImage(eggImage, r.x, r.y + eggOffset, 64, 64, null);
+                g2.drawImage(eggImage, r.x, r.y + eggOffset, 48, 48, null);
             }
             
             // Giữ logic cũ cho eggRect đơn lẻ nếu vẫn còn tồn tại
             if (eggRect != null && !eggCollected) {
                 int eggOffset = (int) (Math.sin(animationCounter * 0.05) * 10); 
-                g2.drawImage(eggImage, eggRect.x, eggRect.y + eggOffset, 64, 64, null);
+                g2.drawImage(eggImage, eggRect.x, eggRect.y + eggOffset, 48, 48, null);
             }
         }
 
