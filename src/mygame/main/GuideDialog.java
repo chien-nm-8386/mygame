@@ -70,7 +70,9 @@ public class GuideDialog extends JDialog {
             "3. CẢNH BÁO: Lũ gà sẽ <b>THỨC TỈNH</b> và <b>ĐUỔI THEO</b> bạn ngay khi bạn nhặt được trứng!<br><br>" +
             "4. CHIẾN ĐẤU: Sau khi có trứng, hãy tìm <b>vŨ kHÍ</b> để tự vệ (Nhấn SPACE để tấn công).<br><br>" +
             "5. HỒI SINH: Hãy cẩn thận! Lũ gà sẽ <b>HỒI SINH</b> sau 5 giây tại vị trí cũ.<br><br>" +
-            "6. CHIẾN THẮNG: Mang trứng về <b>NHÀ</b> an toàn để thắng cuộc." +
+            "6. Mẹo: Tiêu diệt 1 con gà sẽ hồi 10 máu.<br><br>" +
+            "7. Chức năng: Nhấn ESC để tạm dừng và chỉnh sửa âm thanh.<br><br>" +
+            "8. CHIẾN THẮNG: Mang trứng về <b>NHÀ</b> an toàn để thắng cuộc." +
             "</body></html>"
         );
 

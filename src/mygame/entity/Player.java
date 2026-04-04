@@ -13,6 +13,8 @@ import javax.swing.SwingUtilities;
 import mygame.main.GameOverDialog;
 import mygame.main.GamePanel;
 import mygame.main.KeyHandler;
+import mygame.main.Sound;
+
 
 public class Player extends Entity {
 
@@ -26,9 +28,10 @@ public class Player extends Entity {
     public int maxHealth = 100;
 
     private int attackCounter = 0;
+    private boolean attackHitDone = false;
     private boolean gameOverShown = false;
-    
-    private mygame.main.Sound footstepSound = new mygame.main.Sound();
+
+    private final Sound footstepSound = new Sound();
     private boolean isFootstepPlaying = false;
 
     public BufferedImage up1_egg, up2_egg, down1_egg, down2_egg, left1_egg, left2_egg, right1_egg, right2_egg;
@@ -39,7 +42,7 @@ public class Player extends Entity {
         this.keyH = keyH;
 
         solidArea = new Rectangle();
-        solidArea.x = 14;
+        solidArea.x = 12;
         solidArea.y = 24;
         solidArea.width = 24;
         solidArea.height = 20;
@@ -65,10 +68,15 @@ public class Player extends Entity {
         invincible = false;
         invincibleCounter = 0;
         gameOverShown = false;
+
+        stopFootstepSound();
+        applyFootstepVolume();
     }
 
     public void getPlayerImage() {
         footstepSound.setFile("/res/audio/footstep.wav");
+        applyFootstepVolume();
+
         try {
             up1 = setup("/res/tiles/player01_up1.png");
             up2 = setup("/res/tiles/player01_up2.png");
@@ -110,8 +118,26 @@ public class Player extends Entity {
     public BufferedImage setup(String imageName) throws IOException {
         return ImageIO.read(getClass().getResourceAsStream(imageName));
     }
+
+    private void applyFootstepVolume() {
+        if (footstepSound != null && footstepSound.isLoaded()) {
+            footstepSound.setVolume(gp.isFootstepMuted() ? 0 : gp.getFootstepVolume());
+        }
+    }
+
+    public void refreshFootstepVolume() {
+        applyFootstepVolume();
+    }
+    
     private void playFootstepSound() {
-        if (!isFootstepPlaying && footstepSound != null && footstepSound.isLoaded()) {
+        applyFootstepVolume();
+
+        if (gp.isSfxMuted() || gp.getSfxVolume() <= 0) {
+            stopFootstepSound();
+            return;
+        }
+
+        if (!isFootstepPlaying && footstepSound.isLoaded()) {
             footstepSound.loop();
             isFootstepPlaying = true;
         }
@@ -125,18 +151,19 @@ public class Player extends Entity {
         isFootstepPlaying = false;
     }
 
-    @Override
+   @Override
     public void update() {
         if (attacking) {
             attacking();
         } else {
-          
-        if (keyH.spacePressed && hasWeapon) {
-            stopFootstepSound();
-            attacking = true;
-            attackCounter = 0;
 
-        } else if (keyH.upPressed || keyH.downPressed || keyH.leftPressed || keyH.rightPressed) {
+             if (keyH.consumeSpaceJustPressed() && hasWeapon) {
+                stopFootstepSound();
+                attacking = true;
+                attackCounter = 0;
+                attackHitDone = false;
+                gp.playSlashSound();
+            } else if (keyH.upPressed || keyH.downPressed || keyH.leftPressed || keyH.rightPressed) {
 
                 if (keyH.upPressed) direction = "up";
                 else if (keyH.downPressed) direction = "down";
@@ -145,7 +172,6 @@ public class Player extends Entity {
 
                 collisionOn = false;
                 gp.cChecker.checkTile(this);
-                checkObjectInteraction();
 
                 if (!collisionOn) {
                     switch (direction) {
@@ -159,6 +185,8 @@ public class Player extends Entity {
                     stopFootstepSound();
                 }
 
+                checkObjectInteraction();
+
                 spriteCounter++;
                 if (spriteCounter > 12) {
                     spriteNum = (spriteNum == 1) ? 2 : 1;
@@ -168,6 +196,7 @@ public class Player extends Entity {
             } else {
                 spriteNum = 1;
                 stopFootstepSound();
+                checkObjectInteraction();
             }
         }
 
@@ -183,41 +212,75 @@ public class Player extends Entity {
     public void attacking() {
         attackCounter++;
 
-        if (attackCounter <= 15) {
-            int currentWorldX = x;
-            int currentWorldY = y;
-            int solidAreaWidth = solidArea.width;
-            int solidAreaHeight = solidArea.height;
-
-            switch(direction) {
-                case "up": y -= gp.tileSize; break;
-                case "down": y += gp.tileSize; break;
-                case "left": x -= gp.tileSize; break;
-                case "right": x += gp.tileSize; break;
-            }
-
-            solidArea.width = gp.tileSize;
-            solidArea.height = gp.tileSize;
-
+        // frame gây sát thương
+        if (!attackHitDone && attackCounter == 4) {
             checkAttackMonster();
-
-            x = currentWorldX;
-            y = currentWorldY;
-            solidArea.width = solidAreaWidth;
-            solidArea.height = solidAreaHeight;
+            attackHitDone = true;
         }
 
+        // kết thúc animation đánh
         if (attackCounter > 10) {
             attacking = false;
             attackCounter = 0;
+            attackHitDone = false;
         }
     }
 
-    public void checkAttackMonster() {
+     public void checkAttackMonster() {
+        Rectangle playerBody = new Rectangle(
+                x + solidArea.x,
+                y + solidArea.y,
+                solidArea.width,
+                solidArea.height
+        );
+
+        Rectangle attackBox = null;
+
+        switch (direction) {
+            case "up":
+                attackBox = new Rectangle(
+                        playerBody.x,
+                        playerBody.y - gp.tileSize,
+                        playerBody.width,
+                        gp.tileSize
+                );
+                break;
+
+            case "down":
+                attackBox = new Rectangle(
+                        playerBody.x,
+                        playerBody.y + playerBody.height,
+                        playerBody.width,
+                        gp.tileSize
+                );
+                break;
+
+            case "left":
+                attackBox = new Rectangle(
+                        playerBody.x - gp.tileSize,
+                        playerBody.y,
+                        gp.tileSize,
+                        playerBody.height
+                );
+                break;
+
+            case "right":
+                attackBox = new Rectangle(
+                        playerBody.x + playerBody.width,
+                        playerBody.y,
+                        gp.tileSize,
+                        playerBody.height
+                );
+                break;
+        }
+
+        if (attackBox == null) return;
+
         for (Chicken chicken : gp.chickens) {
             if (chicken != null && chicken.alive) {
-                if (getBounds().intersects(chicken.getBounds())) {
-                    chicken.takeDamage(20);
+                if (attackBox.intersects(chicken.getBounds())) {
+                    chicken.takeDamage(50);
+                    break; // mỗi phát chém trúng 1 con thôi
                 }
             }
         }
@@ -230,11 +293,16 @@ public class Player extends Entity {
             hasEgg = true;
             gp.tileM.eggCollected = true;
             gp.tileM.eggRect = null;
+            stopFootstepSound();
+            gp.playEggSound();
         }
 
         if (hasEgg && !hasWeapon && gp.tileM.weaponRect != null && pRect.intersects(gp.tileM.weaponRect)) {
+            System.out.println("Da nhat vu khi");
+            stopFootstepSound();
             hasWeapon = true;
             gp.tileM.weaponRect = null;
+            gp.playWeaponSound();
         }
     }
 
@@ -275,13 +343,32 @@ public class Player extends Entity {
             }
         }
 
-        if (!(invincible && invincibleCounter % 6 < 3)) {
+       if (!(invincible && invincibleCounter % 6 < 3)) {
             if (image != null) {
+                if (hasEgg) {
+                    drawEggAura(g2);
+                }
                 g2.drawImage(image, x, y, gp.tileSize, gp.tileSize, null);
             }
         }
-
         drawPlayerUI(g2);
+    }
+    
+    private void drawEggAura(Graphics2D g2) {
+        int centerX = x + gp.tileSize / 2;
+        int centerY = y + gp.tileSize / 2;
+
+        // vòng glow ngoài
+        g2.setColor(new Color(255, 220, 120, 26));
+        g2.fillOval(centerX - 56, centerY - 56, 112, 112);
+
+        // vòng glow giữa
+        g2.setColor(new Color(255, 235, 150, 22));
+        g2.fillOval(centerX - 40, centerY - 40, 80, 80);
+
+        // vòng glow trong
+        g2.setColor(new Color(255, 248, 210, 18));
+        g2.fillOval(centerX - 26, centerY - 26, 52, 52);
     }
 
     private void drawPlayerUI(Graphics2D g2) {
@@ -293,7 +380,7 @@ public class Player extends Entity {
         g2.setColor(new Color(0, 0, 0, 150));
         g2.drawString(name, textX + 2, textY + 2);
 
-        g2.setColor(Color.WHITE);
+        g2.setColor(hasEgg ? new Color(255, 245, 210) : Color.WHITE);
         g2.drawString(name, textX, textY);
     }
 
@@ -311,7 +398,7 @@ public class Player extends Entity {
         }
     }
 
-   public void triggerGameOver() {
+    public void triggerGameOver() {
         if (gameOverShown) return;
         gameOverShown = true;
 

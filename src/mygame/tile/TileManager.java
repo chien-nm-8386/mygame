@@ -55,7 +55,7 @@ public class TileManager {
             if (is != null) {
                 image = ImageIO.read(is);
             } else {
-                System.out.println("Lỗi: Không tìm thấy file tại " + path);
+                System.out.println("Loi: Khong tim thay file tai " + path);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -127,7 +127,7 @@ public class TileManager {
                 gp.player.hasEgg = true; // Kích hoạt trạng thái có trứng
                 eggCollected = true; // Bật flag để hiện vũ khí (giữ logic cũ)
                 gp.eggSound.play();
-                System.out.println("Bạn đã nhặt được Trứng! Tổng số: " + gp.eggsCollected);
+                System.out.println("Ban da nhat duoc Trung! Tong so: " + gp.eggsCollected);
                 i--; // Giảm chỉ số sau khi xóa
             }
         }
@@ -138,7 +138,7 @@ public class TileManager {
             gp.eggsCollected++;
             gp.player.hasEgg = true; 
             gp.eggSound.play();
-            System.out.println("Bạn đã nhặt được Trứng! Vũ khí đã xuất hiện.");
+            System.out.println("Ban da nhat duoc Trung! Vu khi da xuat hien.");
         }
 
         // Xử lý nhặt Vũ khí
@@ -147,7 +147,7 @@ public class TileManager {
             weaponCollected = true;
             gp.player.hasWeapon = true; 
             weaponRect = null; 
-            System.out.println("Bạn đã nhặt được Vũ khí! (Player03 đã kích hoạt)");
+            System.out.println("Ban da nhat duoc Vu khi! (Player03 da kich hoat)");
         }
     }
 
@@ -192,7 +192,7 @@ public class TileManager {
                 }
             }
         } catch (Exception e) {
-            System.out.println("Lỗi đọc XML Tiled: " + e.getMessage());
+            System.out.println("Loi doc XML Tiled: " + e.getMessage());
         }
     }
     
