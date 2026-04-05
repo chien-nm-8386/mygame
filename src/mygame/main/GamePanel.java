@@ -54,9 +54,6 @@ public class GamePanel extends JPanel implements Runnable {
     // SYSTEM
     public TileManager tileM = new TileManager(this);
 
-    // Nếu project bạn vẫn dùng constructor rỗng thì đổi lại thành:
-    // public KeyHandler keyH = new KeyHandler();
-    // public MouseHandler mouseH = new MouseHandler();
     public KeyHandler keyH = new KeyHandler(this);
     public CollisionChecker cChecker = new CollisionChecker(this);
     public UI ui;
@@ -71,6 +68,11 @@ public class GamePanel extends JPanel implements Runnable {
     public Sound slashSound = new Sound();
     public Sound tensionMusic = new Sound();
     public Sound gameplayMusic = new Sound();
+    
+    // Biến âm thanh cho gà chết
+    public Sound deathSound = new Sound();
+    // Biến âm thanh khi người chơi bị đánh
+    public Sound hurtSound = new Sound();
 
     public int gameMusicVolume = 70;
     private int lastMusicVolume = 70;
@@ -247,7 +249,6 @@ public class GamePanel extends JPanel implements Runnable {
         }
     }
 
-    
     public void toggleFootstepMute() {
         footstepMuted = !footstepMuted;
 
@@ -324,6 +325,14 @@ public class GamePanel extends JPanel implements Runnable {
             slashSound.setVolume(sfxVol);
         }
 
+        if (deathSound != null && deathSound.isLoaded()) {
+            deathSound.setVolume(sfxVol);
+        }
+
+        if (hurtSound != null && hurtSound.isLoaded()) {
+            hurtSound.setVolume(sfxVol);
+        }
+
         if (player != null) {
             player.refreshFootstepVolume();
         }
@@ -354,6 +363,7 @@ public class GamePanel extends JPanel implements Runnable {
         chickens.clear();
         spawnInitialChickens();
 
+        // Nạp sẵn các file âm thanh vào bộ nhớ
         eggSound.setFile("/res/audio/egg.wav");
         eggSound.setVolume(isSfxMuted() ? 0 : getSfxVolume());
 
@@ -362,6 +372,13 @@ public class GamePanel extends JPanel implements Runnable {
 
         slashSound.setFile("/res/audio/slash.wav");
         slashSound.setVolume(isSfxMuted() ? 0 : getSfxVolume());
+
+        deathSound.setFile("/res/audio/death.wav");
+        deathSound.setVolume(isSfxMuted() ? 0 : getSfxVolume());
+
+        // Nạp file danh.wav cho hành động bị gà đánh
+        hurtSound.setFile("/res/audio/danh.wav");
+        hurtSound.setVolume(isSfxMuted() ? 0 : getSfxVolume());
 
         tensionMusic.setFile("/res/audio/tension.wav");
         tensionMusic.setVolume(gameMusicMuted ? 0 : gameMusicVolume);
@@ -476,6 +493,39 @@ public class GamePanel extends JPanel implements Runnable {
 
         slashSound.setVolume(isSfxMuted() ? 0 : getSfxVolume());
         slashSound.playOnceFromStart();
+    }
+
+    // Hàm phát âm thanh khi gà chết (Cho phép phát nhiều tiếng kêu chồng lên nhau qua đa luồng)
+    public void playDeathSound() {
+        if (isSfxMuted()) return;
+
+        new Thread(() -> {
+            try {
+                Sound tempDeath = new Sound();
+                tempDeath.setFile("/res/audio/death.wav");
+                tempDeath.setVolume(getSfxVolume());
+                tempDeath.play();
+            } catch (Exception e) {
+                System.err.println("Loi khi phat am thanh chet!");
+            }
+        }).start();
+    }
+
+    // Hàm phát âm thanh khi người chơi bị gà đánh
+    public void playHurtSound() {
+        if (isSfxMuted()) return;
+
+        new Thread(() -> {
+            try {
+                // Tạo mới hoặc dừng và reset đối tượng cũ để phản hồi tức thì
+                Sound tempHurt = new Sound();
+                tempHurt.setFile("/res/audio/danh.wav");
+                tempHurt.setVolume(getSfxVolume());
+                tempHurt.play();
+            } catch (Exception e) {
+                System.err.println("Loi khi phat am thanh bi danh!");
+            }
+        }).start();
     }
 
     public void playTensionMusic() {
@@ -643,11 +693,9 @@ public class GamePanel extends JPanel implements Runnable {
 
             if (gameState == STATE_PLAY || gameState == STATE_LEVEL2_PLAY) {
                 gameState = STATE_PAUSE;
-
                 if (player != null) {
                     player.stopFootstepSound();
                 }
-
                 mouseH.resetClick();
                 return;
             } else if (gameState == STATE_PAUSE) {
@@ -661,31 +709,26 @@ public class GamePanel extends JPanel implements Runnable {
 
         if (gameState == STATE_PAUSE) {
             if (mouseH.clicked) {
-
                 if (ui.musicMinusBtn.contains(mouseH.mouseX, mouseH.mouseY)) {
                     mouseH.resetClick();
                     setGameMusicVolume(gameMusicVolume - 10);
                     return;
                 }
-
                 if (ui.musicPlusBtn.contains(mouseH.mouseX, mouseH.mouseY)) {
                     mouseH.resetClick();
                     setGameMusicVolume(gameMusicVolume + 10);
                     return;
                 }
-           
                 if (ui.footMinusBtn.contains(mouseH.mouseX, mouseH.mouseY)) {
                     mouseH.resetClick();
                     setFootstepVolume(footstepVolume - 10);
                     return;
                 }
-
                 if (ui.footPlusBtn.contains(mouseH.mouseX, mouseH.mouseY)) {
                     mouseH.resetClick();
                     setFootstepVolume(footstepVolume + 10);
                     return;
                 }
-                
                 if (ui.continueBtn.contains(mouseH.mouseX, mouseH.mouseY)) {
                     mouseH.resetClick();
                     hasSavedProgress = false;
@@ -693,7 +736,6 @@ public class GamePanel extends JPanel implements Runnable {
                     refreshPauseAudio();
                     return;
                 }
-
                 if (ui.menuBtn.contains(mouseH.mouseX, mouseH.mouseY)) {
                     mouseH.resetClick();
                     saveProgressAndBackToMenu();
@@ -724,12 +766,10 @@ public class GamePanel extends JPanel implements Runnable {
 
         for (int i = 0; i < chickens.size(); i++) {
             Chicken chicken = chickens.get(i);
-
             if (chicken == null) continue;
 
             if (chicken.alive) {
                 chicken.update();
-
                 if (player != null && player.getBounds().intersects(chicken.getBounds())) {
                     if (!player.invincible) {
                         player.takeDamage(10);
@@ -737,7 +777,6 @@ public class GamePanel extends JPanel implements Runnable {
                 }
             } else {
                 chicken.respawnCounter++;
-
                 if (chicken.respawnCounter >= 300) {
                     chicken.respawn();
                 }
@@ -802,10 +841,8 @@ public class GamePanel extends JPanel implements Runnable {
 
     private void drawEggOverlay(Graphics2D g2) {
         float pulse = (float) ((Math.sin(eggEffectTick * 0.08) + 1.0) / 2.0);
-
         float centerX = player.x + tileSize / 2f;
         float centerY = player.y + tileSize / 2f;
-
         float radius = 170f + pulse * 15f;
 
         float[] dist = {0.0f, 0.28f, 0.55f, 1.0f};
@@ -890,6 +927,8 @@ public class GamePanel extends JPanel implements Runnable {
         weaponSound.stop();
         slashSound.stop();
         tensionMusic.stop();
+        deathSound.stop(); 
+        hurtSound.stop(); // Dừng âm thanh bị đánh
         stopGameplayMusic();
 
         if (player != null) {

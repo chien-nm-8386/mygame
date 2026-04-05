@@ -24,6 +24,7 @@ public class MenuPanel extends JPanel {
     private Font buttonFont;
 
     private final Sound menuMusic = new Sound();
+    // Khởi tạo sẵn đối tượng Sound cho click để tối ưu hiệu suất
     private final Sound clickSound = new Sound();
 
     private boolean inSettings = false;
@@ -193,9 +194,11 @@ public class MenuPanel extends JPanel {
                     }
                 } else {
                     if (musicMuteButton.contains(p)) {
+                        playClickSound();
                         toggleMusicMute();
 
                     } else if (sfxMuteButton.contains(p)) {
+                        playClickSound();
                         toggleSfxMute();
 
                     } else if (backButton.contains(p)) {
@@ -297,7 +300,6 @@ public class MenuPanel extends JPanel {
     private void toggleMusicMute() {
         musicMuted = !musicMuted;
         applyMenuMusicVolume();
-        playClickSound();
         repaint();
     }
 
@@ -305,7 +307,6 @@ public class MenuPanel extends JPanel {
         boolean willMute = !sfxMuted;
         if (!willMute) {
             sfxMuted = false;
-            playClickSound();
         } else {
             sfxMuted = true;
         }
@@ -607,8 +608,18 @@ public class MenuPanel extends JPanel {
     }
 
     public void playClickSound() {
-      }
-   
+        // Kiểm tra SFX có bị tắt không trước khi phát
+        if (sfxMuted || sfxVolume <= 0) return;
+        
+        try {
+            // Sử dụng file click2.wav theo yêu cầu của bạn
+            clickSound.setFile("/res/audio/click2.wav");
+            clickSound.setVolume(sfxVolume);
+            clickSound.play();
+        } catch (Exception e) {
+            System.err.println("Lỗi phát âm thanh click: " + e.getMessage());
+        }
+    }
 
     public int getMusicVolume() {
         return musicMuted ? 0 : musicVolume;

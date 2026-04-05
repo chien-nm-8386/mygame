@@ -31,8 +31,14 @@ public class Chicken extends Entity {
     private int avoidTimer = 0;
     private String avoidDirection = null;
 
-    // Ảnh animation
+    // --- BIẾN INSTANCE (Dùng để vẽ cho từng con gà) ---
     public BufferedImage up1_egg, up2_egg, down1_egg, down2_egg, left1_egg, left2_egg, right1_egg, right2_egg;
+
+    // --- KHO CHỨA ẢNH DÙNG CHUNG (STATIC) ---
+    private static BufferedImage up1_s, angry_s;
+    private static BufferedImage up1_egg_s, up2_egg_s, down1_egg_s, down2_egg_s;
+    private static BufferedImage left1_egg_s, left2_egg_s, right1_egg_s, right2_egg_s;
+    private static boolean imagesLoaded = false;
 
     public Chicken(GamePanel gp, int startX, int startY) {
         super(gp);
@@ -52,31 +58,50 @@ public class Chicken extends Entity {
         solidAreaDefaultX = solidArea.x;
         solidAreaDefaultY = solidArea.y;
 
-        getChickenImage();
+        if (!imagesLoaded) {
+            getChickenImage();
+        }
+        
+        assignStaticImages();
     }
 
     public void getChickenImage() {
         try {
-            // Ảnh trạng thái bình thường (Ngủ)
-            up1 = setup("/res/tiles/chicken_ngu.png");
-            down1 = up1;
-            left1 = up1;
-            right1 = up1;
-
-            angry = setup("/res/tiles/chicken_gian.png");
+            System.out.println("Dang nap tai nguyen Ga vao Static (Chi chay 1 lan)...");
             
-            // Ảnh trạng thái đuổi theo (Angry)
-            up1_egg = setup("/res/tiles/chicken_up1.png");
-            up2_egg = setup("/res/tiles/chicken_up2.png");
-            down1_egg = setup("/res/tiles/chicken_down1.png");
-            down2_egg = setup("/res/tiles/chicken_down2.png");
-            left1_egg = setup("/res/tiles/chicken_left1.png");
-            left2_egg = setup("/res/tiles/chicken_left2.png");
-            right1_egg = setup("/res/tiles/chicken_right1.png");
-            right2_egg = setup("/res/tiles/chicken_right2.png");
+            up1_s = setup("/res/tiles/chicken_ngu.png");
+            angry_s = setup("/res/tiles/chicken_gian.png");
+            
+            up1_egg_s = setup("/res/tiles/chicken_up1.png");
+            up2_egg_s = setup("/res/tiles/chicken_up2.png");
+            down1_egg_s = setup("/res/tiles/chicken_down1.png");
+            down2_egg_s = setup("/res/tiles/chicken_down2.png");
+            left1_egg_s = setup("/res/tiles/chicken_left1.png");
+            left2_egg_s = setup("/res/tiles/chicken_left2.png");
+            right1_egg_s = setup("/res/tiles/chicken_right1.png");
+            right2_egg_s = setup("/res/tiles/chicken_right2.png");
+
+            imagesLoaded = true;
         } catch (IOException e) {
             System.out.println("Loi tai anh ga!");
         }
+    }
+
+    private void assignStaticImages() {
+        this.up1 = up1_s;
+        this.down1 = up1_s;
+        this.left1 = up1_s;
+        this.right1 = up1_s;
+        this.angry = angry_s;
+
+        this.up1_egg = up1_egg_s;
+        this.up2_egg = up2_egg_s;
+        this.down1_egg = down1_egg_s;
+        this.down2_egg = down2_egg_s;
+        this.left1_egg = left1_egg_s;
+        this.left2_egg = left2_egg_s;
+        this.right1_egg = right1_egg_s;
+        this.right2_egg = right2_egg_s;
     }
 
     public BufferedImage setup(String path) throws IOException {
@@ -85,7 +110,6 @@ public class Chicken extends Entity {
 
     @Override
     public void update() {
-        // 1. Xử lý thời gian bất tử và nhấp nháy của con gà khi bị trúng đòn
         if (invincible) {
             invincibleCounter++;
             if (invincibleCounter > 40) {
@@ -96,21 +120,17 @@ public class Chicken extends Entity {
 
         if (stuckCooldown > 0) stuckCooldown--;
 
-        // 2. Tính khoảng cách đến Player
         int diffX = (gp.player.x + gp.tileSize / 2) - (this.x + gp.tileSize / 2);
         int diffY = (gp.player.y + gp.tileSize / 2) - (this.y + gp.tileSize / 2);
         double distance = Math.sqrt(diffX * diffX + diffY * diffY);
 
-        // 3. AI: Đuổi theo và Tấn công khi Player cầm trứng
         if (gp.player.hasEgg && distance < 250) { 
             attacking = true;
             moveTowardPlayer(diffX, diffY);
 
-            // --- CƠ CHẾ TỰ ĐỘNG TẤN CÔNG (MỔ) ---
             if (distance <= gp.tileSize) {
                 if (!invincible) {
                     attackCounter++; 
-
                     if (attackCounter >= 120) {
                         gp.player.takeDamage(10); 
                         System.out.println("Ga da chu dong mo Player!");
@@ -129,7 +149,6 @@ public class Chicken extends Entity {
             return;
         }
 
-        // 4. Animation chân chạy khi đang đuổi theo
         spriteCounter++;
         if (spriteCounter > 10) {
             spriteNum = (spriteNum == 1) ? 2 : 1;
@@ -215,37 +234,28 @@ public class Chicken extends Entity {
             life -= damage;
             hpBarOn = true;
             hpBarCounter = 0;
-            
-            // Kích hoạt nhấp nháy
             invincible = true;
             invincibleCounter = 0;
             
-            // LOGIC ĐẨY LÙI (Knockback)
+            // Đẩy lùi
             if (gp.player.direction.equals("up")) y -= 10;
             if (gp.player.direction.equals("down")) y += 10;
             if (gp.player.direction.equals("left")) x -= 10;
             if (gp.player.direction.equals("right")) x += 10;
             
-            // ==========================================
-            // LOGIC HỒI MÁU: CHỈ KHI GÀ CHẾT HẲN
-            // ==========================================
             if (life <= 0) {
                 life = 0;
                 alive = false;
                 hpBarOn = false;
                 
-                // Hồi máu cho Player khi tiêu diệt được mục tiêu
-                int healBonus = 10; // Bạn có thể chỉnh lượng máu hồi ở đây
+                // Gọi hàm phát âm thanh chết từ GamePanel
+                gp.playDeathSound();
+                
+                int healBonus = 10; 
                 gp.player.health += healBonus;
-                
-                // Kiểm tra không để máu vượt quá mức tối đa
-                if (gp.player.health > gp.player.maxHealth) {
-                    gp.player.health = gp.player.maxHealth;
-                }
-                
+                if (gp.player.health > gp.player.maxHealth) gp.player.health = gp.player.maxHealth;
                 System.out.println("Ga da chet! Player duoc hoi " + healBonus + " HP.");
             }
-            // ==========================================
         }
     }
 
@@ -258,20 +268,16 @@ public class Chicken extends Entity {
         this.attacking = false;
         this.respawnCounter = 0;
         this.shrinkCounter = 20;
-        System.out.println("Ga da hoi sinh tai: " + x + ", " + y);
     }
 
     @Override
     public void draw(Graphics2D g2) {
-        // 1. Vẽ vòng tròn ma thuật (Hiệu ứng hồi sinh)
         if ((!alive && respawnCounter > 180) || (alive && shrinkCounter > 0)) {
             drawMagicCircle(g2);
         }
 
-        // 2. Vẽ con gà nếu còn sống
         if (alive) {
             BufferedImage image = null;
-
             int diffX = (gp.player.x + gp.tileSize / 2) - (this.x + gp.tileSize / 2);
             int diffY = (gp.player.y + gp.tileSize / 2) - (this.y + gp.tileSize / 2);
             double distance = Math.sqrt(diffX * diffX + diffY * diffY);
@@ -291,7 +297,6 @@ public class Chicken extends Entity {
                 }
             }
 
-            // 3. Xử lý hiệu ứng nhấp nháy khi gà bị trúng đòn
             if (!(invincible && invincibleCounter % 10 < 5)) {
                 if (image != null) {
                     g2.drawImage(image, x, y, gp.tileSize, gp.tileSize, null);
@@ -299,24 +304,17 @@ public class Chicken extends Entity {
             }
 
             if (shrinkCounter > 0) shrinkCounter--;
-
-            // 4. Vẽ thanh máu (HP Bar)
-            if (hpBarOn) {
-                drawHPBar(g2);
-            }
+            if (hpBarOn) drawHPBar(g2);
         }
     }
 
     private void drawHPBar(Graphics2D g2) {
         double oneScale = (double) gp.tileSize / maxLife;
         double hpBarValue = oneScale * life;
-
         g2.setColor(new Color(35, 35, 35));
         g2.fillRect(x - 1, y - 11, gp.tileSize + 2, 10);
-
         g2.setColor(new Color(255, 0, 30));
         g2.fillRect(x, y - 10, (int) hpBarValue, 8);
-
         hpBarCounter++;
         if (hpBarCounter > 300) hpBarOn = false;
     }
@@ -338,19 +336,12 @@ public class Chicken extends Entity {
             currentRadius = (int) (baseRadius * (shrinkCounter / 20f));
         }
         if (alpha < 0) alpha = 0; 
-
         g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
 
         float hue = (respawnCounter % 100) / 100f;
         g2.setColor(Color.getHSBColor(hue, 0.8f, 1.0f));
         g2.setStroke(new BasicStroke(3));
-        g2.drawOval(
-                drawX + gp.tileSize / 2 - currentRadius / 2,
-                drawY + gp.tileSize / 2 - currentRadius / 2,
-                currentRadius,
-                currentRadius
-        );
-
+        g2.drawOval(drawX + gp.tileSize/2 - currentRadius/2, drawY + gp.tileSize/2 - currentRadius/2, currentRadius, currentRadius);
         g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
     }
 }

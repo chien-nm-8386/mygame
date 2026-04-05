@@ -5,19 +5,30 @@ import java.util.ArrayList;
 import mygame.main.GamePanel;
 
 public class PathFinder {
-    GamePanel gp;
+
+    // --- CẤU HÌNH & THÀNH PHẦN HỆ THỐNG ---
+    private final GamePanel gp;
     public Node[][] node;
-    ArrayList<Node> openList = new ArrayList<>();
+    
+    // --- DANH SÁCH ĐIỀU HƯỚNG ---
+    private final ArrayList<Node> openList = new ArrayList<>();
     public ArrayList<Node> pathList = new ArrayList<>();
-    Node startNode, goalNode, currentNode;
-    boolean goalReached = false;
-    int step = 0;
+    
+    // --- TRẠNG THÁI TÌM KIẾM ---
+    private Node startNode, goalNode, currentNode;
+    private boolean goalReached = false;
+    private int step = 0;
+    private final int MAX_STEPS = 1000; // Giới hạn để tránh vòng lặp vô tận
 
     public PathFinder(GamePanel gp) {
         this.gp = gp;
         instantiateNodes();
         updateSolidNodes();
     }
+
+    // =========================================================================
+    // 1. KHỞI TẠO & CẬP NHẬT DỮ LIỆU TĨNH (INITIALIZATION)
+    // =========================================================================
 
     public void instantiateNodes() {
         node = new Node[gp.maxScreenCol][gp.maxScreenRow];
@@ -28,24 +39,33 @@ public class PathFinder {
         }
     }
 
-   public void updateSolidNodes() {
-    for (int col = 0; col < gp.maxScreenCol; col++) {
-        for (int row = 0; row < gp.maxScreenRow; row++) {
+    /**
+     * Cập nhật trạng thái vật cản. 
+     * Gọi hàm này khi Map thay đổi hoặc khi bắt đầu Game.
+     */
+    public void updateSolidNodes() {
+        for (int col = 0; col < gp.maxScreenCol; col++) {
+            for (int row = 0; row < gp.maxScreenRow; row++) {
+                
+                node[col][row].solid = false;
 
-            node[col][row].solid = false;
+                // Tính toán tọa độ thực tế của ô
+                int centerX = col * gp.tileSize + gp.tileSize / 2;
+                int centerY = row * gp.tileSize + gp.tileSize / 2;
 
-            int centerX = col * gp.tileSize + gp.tileSize / 2;
-            int centerY = row * gp.tileSize + gp.tileSize / 2;
-
-            for (Rectangle rect : gp.tileM.collisionRects) {
-                if (rect.contains(centerX, centerY)) {
-                    node[col][row].solid = true;
-                    break;
+                for (Rectangle rect : gp.tileM.collisionRects) {
+                    if (rect.contains(centerX, centerY)) {
+                        node[col][row].solid = true;
+                        break;
+                    }
                 }
             }
         }
     }
-}
+
+    // =========================================================================
+    // 2. THIẾT LẬP TRƯỚC KHI TÌM KIẾM (SETUP)
+    // =========================================================================
 
     public void resetNodes() {
         for (int col = 0; col < gp.maxScreenCol; col++) {
@@ -67,15 +87,16 @@ public class PathFinder {
     public boolean setNodes(int startCol, int startRow, int goalCol, int goalRow) {
         resetNodes();
 
-        startCol = Math.max(0, Math.min(startCol, gp.maxScreenCol - 1));
-        startRow = Math.max(0, Math.min(startRow, gp.maxScreenRow - 1));
-        goalCol = Math.max(0, Math.min(goalCol, gp.maxScreenCol - 1));
-        goalRow = Math.max(0, Math.min(goalRow, gp.maxScreenRow - 1));
+        // Kiểm tra biên để tránh IndexOutOfBoundsException
+        if (isOutOfBounds(startCol, startRow) || isOutOfBounds(goalCol, goalRow)) {
+            return false;
+        }
 
         startNode = node[startCol][startRow];
         currentNode = startNode;
         goalNode = node[goalCol][goalRow];
 
+        // Nếu điểm bắt đầu hoặc đích nằm trong vật cản
         if (startNode.solid || goalNode.solid) {
             return false;
         }
@@ -84,37 +105,35 @@ public class PathFinder {
         return true;
     }
 
+    private boolean isOutOfBounds(int col, int row) {
+        return col < 0 || col >= gp.maxScreenCol || row < 0 || row >= gp.maxScreenRow;
+    }
+
+    // =========================================================================
+    // 3. LOGIC THUẬT TOÁN A* (SEARCH CORE)
+    // =========================================================================
+
     public boolean search() {
-        while (!goalReached && step < 1000) {
+        while (!goalReached && step < MAX_STEPS) {
             int col = currentNode.col;
             int row = currentNode.row;
 
+            // Đánh dấu Node hiện tại đã xử lý
             currentNode.checked = true;
             openList.remove(currentNode);
 
-            if (row - 1 >= 0) openNode(node[col][row - 1]);
-            if (col - 1 >= 0) openNode(node[col - 1][row]);
-            if (row + 1 < gp.maxScreenRow) openNode(node[col][row + 1]);
-            if (col + 1 < gp.maxScreenCol) openNode(node[col + 1][row]);
+            // Kiểm tra 4 hướng xung quanh
+            exploreNeighbors(col, row);
 
-            if (openList.isEmpty()) break;
-
-            int bestNodeIndex = 0;
-            int bestNodefCost = Integer.MAX_VALUE;
-
-            for (int i = 0; i < openList.size(); i++) {
-                if (openList.get(i).fCost < bestNodefCost) {
-                    bestNodeIndex = i;
-                    bestNodefCost = openList.get(i).fCost;
-                } else if (openList.get(i).fCost == bestNodefCost) {
-                    if (openList.get(i).gCost < openList.get(bestNodeIndex).gCost) {
-                        bestNodeIndex = i;
-                    }
-                }
+            // Nếu không còn Node nào để đi tiếp
+            if (openList.isEmpty()) {
+                break;
             }
 
-            currentNode = openList.get(bestNodeIndex);
+            // Tìm Node tối ưu nhất trong Open List
+            currentNode = getBestNodeFromOpenList();
 
+            // Kiểm tra đích
             if (currentNode == goalNode) {
                 goalReached = true;
                 trackThePath();
@@ -124,31 +143,59 @@ public class PathFinder {
         return goalReached;
     }
 
+    private void exploreNeighbors(int col, int row) {
+        if (row - 1 >= 0) openNode(node[col][row - 1]); // Lên
+        if (col - 1 >= 0) openNode(node[col - 1][row]); // Trái
+        if (row + 1 < gp.maxScreenRow) openNode(node[col][row + 1]); // Xuống
+        if (col + 1 < gp.maxScreenCol) openNode(node[col + 1][row]); // Phải
+    }
+
+    private Node getBestNodeFromOpenList() {
+        int bestNodeIndex = 0;
+        int bestNodefCost = Integer.MAX_VALUE;
+
+        for (int i = 0; i < openList.size(); i++) {
+            Node checkNode = openList.get(i);
+            
+            // Ưu tiên fCost thấp nhất
+            if (checkNode.fCost < bestNodefCost) {
+                bestNodeIndex = i;
+                bestNodefCost = checkNode.fCost;
+            } 
+            // Nếu fCost bằng nhau, chọn Node có gCost (quãng đường đã đi) ngắn hơn
+            else if (checkNode.fCost == bestNodefCost) {
+                if (checkNode.gCost < openList.get(bestNodeIndex).gCost) {
+                    bestNodeIndex = i;
+                }
+            }
+        }
+        return openList.get(bestNodeIndex);
+    }
+
     public void openNode(Node node) {
         if (!node.open && !node.checked && !node.solid) {
             node.open = true;
             node.parent = currentNode;
-            getCosts(node);
+            calculateCosts(node);
             openList.add(node);
         }
     }
 
-    private void getCosts(Node node) {
-        int xDistance = Math.abs(node.col - startNode.col);
-        int yDistance = Math.abs(node.row - startNode.row);
-        node.gCost = xDistance + yDistance;
-
-        xDistance = Math.abs(node.col - goalNode.col);
-        yDistance = Math.abs(node.row - goalNode.row);
-        node.hCost = xDistance + yDistance;
-
+    private void calculateCosts(Node node) {
+        // Manhattan Distance: |x1 - x2| + |y1 - y2|
+        node.gCost = Math.abs(node.col - startNode.col) + Math.abs(node.row - startNode.row);
+        node.hCost = Math.abs(node.col - goalNode.col) + Math.abs(node.row - goalNode.row);
         node.fCost = node.gCost + node.hCost;
     }
+
+    // =========================================================================
+    // 4. KẾT QUẢ (RESULTS)
+    // =========================================================================
 
     public void trackThePath() {
         Node current = goalNode;
         while (current != startNode) {
-            pathList.add(0, current);
+            pathList.add(0, current); // Luôn thêm vào đầu để có thứ tự Start -> Goal
             current = current.parent;
         }
     }
